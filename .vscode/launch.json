@@ -8,7 +8,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Open archive.html",
-            "file": "/Users/asheratkins/Downloads/archiveFrontend/archive.html"
+            "file": "/Users/asheratkins/code/archiveFrontend/archive.html"
         }
     ]
 }
