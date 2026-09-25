@@ -13,7 +13,7 @@ function renderShell(activePage) {
 <header class="site-header">
   <div class="header-inner">
     <a href="index.html" class="site-logo">
-      <span class="logo-primary">Bastrop County Archive</span>
+      <span class="logo-primary">IUPRA Archive</span>
     </a>
     <nav class="main-nav">${navHTML}</nav>
   </div>
@@ -24,12 +24,12 @@ function renderShell(activePage) {
   <div class="footer-inner">
     <div class="footer-brand">
       <div class="site-logo" style="margin-bottom:.75rem">
-        <span class="logo-primary">Bastrop County Archive</span>
+        <span class="logo-primary">IUPRA Archive</span>
       </div>
-      <p>IRP Description.</p>
+      <p>buggy Description.</p>
       <p style="margin-top:.6rem;font-size:.8rem;color:#6a5e58;font-style:italic">
-        Gordon-White Building, UT Austin
-        210 W. 24th Street
+        Gordon-White Building, UT Austin<br>
+        210 W. 24th Street<br>
         Austin, TX 78705
       </p>
     </div>
@@ -58,7 +58,7 @@ function renderShell(activePage) {
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2025 Bastrop County Archive. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} IUPRA Archive. All rights reserved.</p>
   </div>
 </footer>`;
 
