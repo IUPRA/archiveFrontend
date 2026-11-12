@@ -8,83 +8,71 @@
 </head>
 <body>
 
+<script src="config.js"></script>
+
 <main>
 
   <div class="page-hero">
     <div class="container">
-      <h1>Blog</h1>
-      <p>One sentence describing the blog: research notes, methodology updates, community stories.</p>
-    </div>
-  </div>
-
-  <div class="container">
     <section style="padding: 2.5rem 0;">
-      <div class="blog-grid">
 
-        <!-- Repeat this card block for each post -->
+      <!-- Cards are rendered from GET /blog-posts by loadPosts(). -->
+      <div class="blog-grid" id="postGrid"></div>
 
-        <article class="blog-card">
-          <div class="blog-card__img-ph ph">Post image — ~600×175px</div>
-          <div class="blog-card__body">
-            <p class="blog-card__meta">Date · Author</p>
-            <h2 class="blog-card__title"><a href="#">Post title</a></h2>
-            <p class="blog-card__excerpt">1–2 sentence description.</p>
-            <div class="blog-card__footer">
-              <span class="tag">Category tag</span>
-              <a href="#" class="btn btn--ghost btn--sm">Read more →</a>
-            </div>
-          </div>
-        </article>
+      <p id="postLoading" style="text-align:center;padding:3rem;color:var(--muted);">
+        Loading posts…
+      </p>
 
-        <article class="blog-card">
-          <div class="blog-card__img-ph ph">Post image — ~600×175px</div>
-          <div class="blog-card__body">
-            <p class="blog-card__meta">Date · Author</p>
-            <h2 class="blog-card__title"><a href="#">Post title</a></h2>
-            <p class="blog-card__excerpt">1–2 sentence description.</p>
-            <div class="blog-card__footer">
-              <span class="tag">Category tag</span>
-              <a href="#" class="btn btn--ghost btn--sm">Read more →</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="blog-card">
-          <div class="blog-card__img-ph ph">Post image — ~600×175px</div>
-          <div class="blog-card__body">
-            <p class="blog-card__meta">Date · Author</p>
-            <h2 class="blog-card__title"><a href="#">Post title</a></h2>
-            <p class="blog-card__excerpt">1–2 sentence description.</p>
-            <div class="blog-card__footer">
-              <span class="tag">Category tag</span>
-              <a href="#" class="btn btn--ghost btn--sm">Read more →</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="blog-card">
-          <div class="blog-card__img-ph ph">Post image — ~600×175px</div>
-          <div class="blog-card__body">
-            <p class="blog-card__meta">Date · Author</p>
-            <h2 class="blog-card__title"><a href="#">Post title</a></h2>
-            <p class="blog-card__excerpt">1–2 sentence description.</p>
-            <div class="blog-card__footer">
-              <span class="tag">Category tag</span>
-              <a href="#" class="btn btn--ghost btn--sm">Read more →</a>
-            </div>
-          </div>
-        </article>
-        
-        <!-- Add more cards as needed -->
-
+      <div id="postError" role="alert" style="display:none;padding:1.25rem;
+           border:1px solid var(--border);border-left:3px solid var(--rust);background:var(--sand);">
+        <strong style="display:block;margin-bottom:.35rem;color:var(--ink);">Could not load blog posts</strong>
+        <span id="postErrorDetail" style="color:var(--ink-soft);font-size:.88rem;"></span>
+        <div style="margin-top:.75rem;">
+          <button class="btn btn--outline btn--sm" onclick="loadPosts()">Retry</button>
+        </div>
       </div>
+
+      <p id="postEmpty" style="display:none;text-align:center;padding:3rem;color:var(--muted);">
+        No posts have been published yet.
+      </p>
+
     </section>
   </div>
 
 </main>
 
 
+<script src="posts.js"></script>
+<script>
+function showPostError(message) {
+  document.getElementById('postGrid').innerHTML = '';
+  document.getElementById('postLoading').style.display = 'none';
+  document.getElementById('postEmpty').style.display = 'none';
+  document.getElementById('postErrorDetail').textContent = message;
+  document.getElementById('postError').style.display = '';
+}
+
+async function loadPosts() {
+  document.getElementById('postError').style.display = 'none';
+  document.getElementById('postEmpty').style.display = 'none';
+  document.getElementById('postLoading').style.display = '';
+
+  try {
+    const posts = await fetchPosts();
+    document.getElementById('postLoading').style.display = 'none';
+    document.getElementById('postGrid').innerHTML = posts.map(p => renderPost(p)).join('');
+    document.getElementById('postEmpty').style.display = posts.length ? 'none' : '';
+  } catch (err) {
+    console.error('GET /blog-posts failed:', err);
+    showPostError(postErrorMessage(err));
+  }
+}
+
+loadPosts();
+</script>
+
 <script src="shell.js"></script>
 <script>renderShell('Blog');</script>
+<script src="chat.js"></script>
 </body>
 </html>

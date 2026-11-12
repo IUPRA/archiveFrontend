@@ -8,12 +8,14 @@
 </head>
 <body>
 
+<script src="config.js"></script>
+
 <main>
 
   <div class="page-hero">
     <div class="container">
-      <h1>About</h1>
-      <p>one sentence tagline</p>
+      <h1>About us</h1>
+      <p>The people and methods behind IUPRA</p>
     </div>
   </div>
 
@@ -28,14 +30,12 @@
       <!-- Text -->
       <div class="about-body">
         <h2>Our Mission</h2>
-        <p>Paragraph 1 — describing the project's purpose and what it aims to achieve</p>
-        <p>Paragraph 2 — describing who the intended audience is</p>
+        <p>The Institute for Urban Policy Research & Analysis (IUPRA) serves as a hub for research, teaching, and digital innovation. IRP supports research across public policy, demography, migration, and history through faculty and staff-led research databases, programming, and initiatives. Additionally, by integrating undergraduate research, digital skills training, online curricular innovation, and public-facing scholarship, IRP is developing a scalable model that advances key institutional priorities related to student success, workforce readiness, and research impact. IRP's activities extend beyond traditional research support by creating a curricular ecosystem in which students acquire advanced methodological skills through direct participation in faculty-led research and digital scholarship initiatives.</p>
 
         <h2 style="margin-top:1.5rem;">The Data</h2>
-        <p>Describing the two main data components: the historical text archive and the census data.</p>
-
-        <h2 style="margin-top:1.5rem;">The Team</h2>
-        <p>Describing team members, institutional affiliations, funding sources, or acknowledgments.</p>
+        <p>The archive has two parts. IUPRA students have compiled historical archival
+          documents from our different areas of research. We also hold census
+          data for Central Texas, which we have cleaned and normalized using our own data methodology.</p>
 
         <div style="margin-top:1.5rem; display:flex; gap:.75rem; flex-wrap:wrap;">
           <a href="archive.html" class="btn btn--primary">Explore the Archive</a>
@@ -44,12 +44,283 @@
       </div>
 
     </div>
+
+    <!-- ── THE TEAM ── -->
+    <section class="team-section">
+      <h2>The Team</h2>
+      <p class="team-intro">
+        The archive is compiled by students and researchers at the Institute for Urban
+        Policy Research and Analysis (IUPRA). Navigate between the different projects to see the students and researchers who have contributed to them.
+      </p>
+
+      <!-- Section tabs and members are both rendered from GET /student-profiles
+           by loadProfiles(); the bar is built from the sections the data
+           actually contains, never a hardcoded list. -->
+      <div class="section-tabs" id="teamTabs"></div>
+      <div class="team-list" id="teamList"></div>
+
+      <p id="teamLoading" style="color:var(--muted);font-size:.9rem;padding:1rem 0;">
+        Loading profiles…
+      </p>
+
+      <div id="teamError" role="alert" style="display:none;padding:1.25rem;max-width:780px;
+           border:1px solid var(--border);border-left:3px solid var(--rust);background:var(--sand);">
+        <strong style="display:block;margin-bottom:.35rem;color:var(--ink);">Could not load team profiles</strong>
+        <span id="teamErrorDetail" style="color:var(--ink-soft);font-size:.88rem;"></span>
+        <div style="margin-top:.75rem;">
+          <button class="btn btn--outline btn--sm" onclick="loadProfiles()">Retry</button>
+        </div>
+      </div>
+
+      <p id="teamEmpty" style="display:none;color:var(--muted);font-size:.9rem;padding:1rem 0;">
+        No team profiles have been published yet.
+      </p>
+    </section>
+
   </div>
 
 </main>
 
 
+<script>
+// ──────────────────────────────────────────────────────────────────────────
+// Data layer — GET /student-profiles
+//
+// Profiles are authored in AWS and rendered here; adding one there is all it
+// takes to have it appear on this page. No credentials belong in the browser.
+// ──────────────────────────────────────────────────────────────────────────
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+  { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+));
+
+/** Normalise one API record into the shape the member renderer uses. */
+/**
+ * Pull the student number out of a record's key.
+ *
+ * PK arrives as "STUDENT#{1}", braces included. Mia Cisco's is the
+ * uninterpolated template "STUDENT#{studentID}", which has no number in it and
+ * so yields null, as does any future record whose key changes shape.
+ */
+function profileNumber(it) {
+  const m = /(\d+)/.exec(String(it.studentId ?? it.PK ?? ''));
+  return m ? m[1] : null;
+}
+
+/**
+ * Candidate portrait URLs, in the order the <img> should try them.
+ *
+ * Portraits live at profiles/<student number>/<student number>.png, so the
+ * student number from the record's key gives the whole path. The record's own
+ * s3Key is tried first when it has one, since that is the only reference that
+ * is authoritative, and the convention follows as the fallback. The first URL
+ * that loads wins and the rest are never requested.
+ *
+ * A student whose portrait is not uploaded yet simply keeps the placeholder;
+ * the CDN answers 403 for a key that is not there, which is expected here and
+ * not treated as a failure.
+ */
+function photoCandidates(it) {
+  const n = profileNumber(it);
+  return [
+    mediaUrl(it.photoUrl ?? it.imageUrl ?? it.s3Key),
+    n ? mediaUrl(`profiles/${n}/${n}.png`) : null,
+  ].filter((url, i, all) => url && all.indexOf(url) === i);
+}
+
+function normalizeProfile(it) {
+  return {
+    name:  it.name  ?? '',
+    title: it.title ?? '',
+    // `summary` is the short blurb when an author writes one; `information`
+    // is the long bio. Either may be blank.
+    bio:   (it.summary || it.information || '').trim(),
+    photos: photoCandidates(it),
+    status: it.status ?? 'PUBLISHED',
+    // Which parts of the project this person works on. A list, because several
+    // people are on two or three. Older records predate the field and have
+    // none, which is why the All tab exists: without it they would be
+    // unreachable rather than merely ungrouped.
+    sections: Array.isArray(it.section) ? it.section.filter(Boolean)
+            : (it.section ? [it.section] : []),
+  };
+}
+
+/** Render one normalised profile as a .team-member article. */
+function renderMember(p) {
+  // A missing portrait is not an error: the sand circle stands in for it.
+  // referrerpolicy keeps the page URL out of the request to the CDN; width and
+  // height match the .team-avatar circle so the layout does not shift as
+  // portraits arrive. A portrait that fails to load removes itself and the sand
+  // circle shows through, same as a record with no photo at all.
+  // Remaining candidates ride along in data-photo-fallbacks; wirePhotos()
+  // steps through them on error and drops the <img> once they run out.
+  const photo = p.photos.length
+    ? `<img src="${esc(p.photos[0])}" alt="Portrait of ${esc(p.name)}"
+            width="120" height="120" loading="lazy" decoding="async"
+            referrerpolicy="no-referrer"
+            data-photo-fallbacks="${esc(p.photos.slice(1).join(' '))}">`
+    : '';
+  const role = p.title ? `<span class="team-role">${esc(p.title)}</span>` : '';
+  const bio  = p.bio ? `<p>${esc(p.bio)}</p>` : '';
+
+  return `
+    <article class="team-member">
+      <div class="team-avatar">${photo}</div>
+      <div>
+        <h3>${esc(p.name)}</h3>
+        ${role}
+        ${bio}
+      </div>
+    </article>`;
+}
+
+/**
+ * Walk each portrait through its fallback URLs on error, then give up.
+ *
+ * Giving up means removing the <img> so the sand circle behind it shows, which
+ * is the same result as a record with no portrait at all. A 403 from the CDN for
+ * a student whose photo has not been uploaded yet is expected, not a failure.
+ */
+function wirePhotos() {
+  document.querySelectorAll('#teamList img[data-photo-fallbacks]').forEach(img => {
+    img.addEventListener('error', () => {
+      const queue = (img.dataset.photoFallbacks || '').split(' ').filter(Boolean);
+      const next = queue.shift();
+      if (!next) { img.remove(); return; }
+      img.dataset.photoFallbacks = queue.join(' ');
+      img.src = next;
+    });
+  });
+}
+
+function showProfileError(message) {
+  document.getElementById('teamList').innerHTML = '';
+  document.getElementById('teamLoading').style.display = 'none';
+  document.getElementById('teamEmpty').style.display = 'none';
+  document.getElementById('teamErrorDetail').textContent = message;
+  document.getElementById('teamError').style.display = '';
+}
+
+// ── Section tabs ───────────────────────────────────────────────────────────
+//
+// The canonical display order. A section not in this list still appears, after
+// these, rather than being dropped: a new section added in the admin tool shows
+// up on the site without this file changing.
+const SECTION_ORDER = [
+  'Bastrop', 'Travis', 'Canal Zone', 'Latin America', 'Textual Database', 'Africa',
+];
+
+let allProfiles = [];
+let activeSection = '';        // '' means All
+
+/** Sections present in the data, in canonical order, with the rest appended. */
+function sectionsInData(profiles) {
+  const found = new Set();
+  profiles.forEach(p => p.sections.forEach(sec => found.add(sec)));
+  const known = SECTION_ORDER.filter(sec => found.has(sec));
+  const extra = [...found].filter(sec => !SECTION_ORDER.includes(sec)).sort();
+  return known.concat(extra);
+}
+
+function sectionSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function renderTabs(profiles) {
+  const sections = sectionsInData(profiles);
+  const tabs = [{ label: 'All', value: '', n: profiles.length }].concat(
+    sections.map(sec => ({
+      label: sec,
+      value: sec,
+      n: profiles.filter(p => p.sections.includes(sec)).length,
+    }))
+  );
+
+  document.getElementById('teamTabs').innerHTML = tabs.map(t => `
+    <button class="section-tab ${t.value === activeSection ? 'active' : ''}"
+            onclick="switchSection('${esc(t.value).replace(/'/g, "\\'")}')"
+            aria-pressed="${t.value === activeSection}">
+      ${esc(t.label)}<span class="section-tab__n">${t.n}</span>
+    </button>`).join('');
+}
+
+function renderMembers() {
+  const shown = activeSection
+    ? allProfiles.filter(p => p.sections.includes(activeSection))
+    : allProfiles;
+
+  document.getElementById('teamList').innerHTML = shown.map(renderMember).join('');
+  wirePhotos();
+  document.getElementById('teamEmpty').style.display = shown.length ? 'none' : '';
+}
+
+/** Called from the tab bar's inline onclick, so it must stay global. */
+function switchSection(section) {
+  activeSection = section;
+  renderTabs(allProfiles);
+  renderMembers();
+  // Keep the fragment in sync so a section can be linked to, the same way
+  // archive.html does for its tabs. Browsers refuse replaceState on file://,
+  // hence the try.
+  try {
+    const hash = section ? `#${sectionSlug(section)}` : ' ';
+    history.replaceState(null, '', section ? hash : location.pathname + location.search);
+  } catch (e) { /* file:// */ }
+}
+
+/** Resolve an incoming #fragment to a section name, or '' for All. */
+function sectionFromHash(profiles) {
+  const want = (location.hash || '').replace(/^#/, '').toLowerCase();
+  if (!want) return '';
+  return sectionsInData(profiles).find(sec => sectionSlug(sec) === want) || '';
+}
+
+async function loadProfiles() {
+  document.getElementById('teamError').style.display = 'none';
+  document.getElementById('teamEmpty').style.display = 'none';
+  document.getElementById('teamLoading').style.display = '';
+
+  try {
+    // No custom headers: this stays a CORS "simple request", so the browser
+    // never needs to send an OPTIONS preflight.
+    const res = await fetch(`${API_BASE_URL}/student-profiles`);
+    if (!res.ok) throw new Error(`The profiles API returned HTTP ${res.status} ${res.statusText}.`);
+    const body = await res.json();
+    // Bare array (what is deployed today) or { items: [...] }.
+    const raw = Array.isArray(body) ? body : (body.items ?? []);
+    if (!Array.isArray(raw)) throw new Error('The profiles API returned an unexpected response shape.');
+
+    const profiles = raw
+      .map(normalizeProfile)
+      .filter(p => p.name)
+      // Every profile is PUBLISHED as of 2026-10-06, so this filter is now safe
+      // to apply: it hides a record someone is still drafting in the admin tool
+      // rather than emptying the section, which is why it used to be commented
+      // out.
+      .filter(p => p.status === 'PUBLISHED')
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    document.getElementById('teamLoading').style.display = 'none';
+    allProfiles = profiles;
+    activeSection = sectionFromHash(profiles);
+    renderTabs(profiles);
+    renderMembers();
+  } catch (err) {
+    console.error('GET /student-profiles failed:', err);
+    showProfileError(
+      err instanceof TypeError
+        ? 'Could not reach the profiles API. Check your connection and that the API allows this origin.'
+        : err.message
+    );
+  }
+}
+
+loadProfiles();
+</script>
+
 <script src="shell.js"></script>
 <script>renderShell('About');</script>
+<script src="chat.js"></script>
 </body>
 </html>

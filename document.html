@@ -181,6 +181,8 @@
   </style>
 </head>
 <body>
+<script src="config.js"></script>
+<script src="cite.js"></script>
 <script src="shell.js"></script>
 
 <main>
@@ -193,138 +195,66 @@
   </div>
 
   <div class="container">
-    <div class="doc-layout">
+
+    <p id="docLoading" style="padding:3rem 0;color:var(--muted);">Loading document…</p>
+
+    <div id="docError" role="alert" style="display:none;padding:1.25rem;margin:2rem 0;
+         border:1px solid var(--border);border-left:3px solid var(--rust);background:var(--sand);">
+      <strong style="display:block;margin-bottom:.35rem;color:var(--ink);">Could not load this document</strong>
+      <span id="docErrorDetail" style="color:var(--ink-soft);font-size:.88rem;"></span>
+      <div style="margin-top:.75rem;">
+        <a href="archive.html" class="btn btn--outline btn--sm">Back to Archive</a>
+      </div>
+    </div>
+
+    <!-- Filled by renderDocument() from the record's Dublin Core fields. -->
+    <div class="doc-layout" id="docLayout" style="display:none;">
 
       <div>
-        <h1 class="doc-title">[Document Title]</h1>
-        <p class="doc-author">[Author Name(s)]</p>
+        <h1 class="doc-title" id="docTitle"></h1>
+        <p class="doc-author" id="docAuthor"></p>
 
         <div class="accordion open" id="acc-abstract" style="margin-bottom:1.25rem;">
           <button class="accordion__trigger" onclick="toggleAcc('acc-abstract')">
-            Abstract <span class="accordion__arrow">▼</span>
+            Abstract <span class="accordion__arrow">&#9660;</span>
           </button>
           <div class="accordion__body">
-            <p style="font-size:.92rem; color:var(--ink-soft); line-height:1.8;">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum gravida ut mi sit amet tristique. Morbi aliquam lectus eget pharetra mattis. Suspendisse potenti. Pellentesque risus mauris, sagittis eget eleifend nec, maximus eu mauris. Nunc vehicula, leo ut viverra convallis, odio arcu consequat elit, sit amet bibendum lectus ligula vitae lorem. Nullam consectetur ac orci non gravida. Praesent id sem vitae dolor tincidunt convallis ac ac orci. Nullam nibh nibh, scelerisque eu dui ut, pretium facilisis arcu. Duis dignissim nisl ac justo malesuada, ut pretium felis iaculis. Integer a pulvinar diam, non porta odio. Vivamus pulvinar sodales ipsum vitae auctor. Nunc pharetra purus justo, non tempor ex pellentesque sit amet. Donec vitae enim et diam rhoncus interdum quis sit amet velit. Quisque dapibus ac nisi et accumsan.
-            </p>
+            <p id="docAbstract" style="font-size:.92rem; color:var(--ink-soft); line-height:1.8;"></p>
           </div>
         </div>
 
-        <!-- Class A: PDF embed -->
-        <div class="pdf-placeholder">
-          [PDF embed — replace this div with:<br>
-          &lt;iframe class="pdf-embed" src="your-file.pdf"&gt;&lt;/iframe&gt;]
-        </div>
-
-        
-        <!-- Class B: excerpt + access notice 
-          <div class="access-notice">
-            <div>Full text not available for display. Access the full text at:
-            <a href="#">[External source link]</a>.</div>
-          </div>
-          <p class="excerpt-text" style="margin-top:1.25rem;">Short excerpt.</p>
-        -->
-
-        <!-- Class C: access notice only 
-          <div class="access-notice">
-            <div>Text contents cannot be displayed or downloaded. Visit:
-            <a href="#">[External source link]</a> to access this item.</div>
-          </div>
-        -->
+        <!-- Access block: PDF embed, external-source notice, or metadata-only
+             notice, decided by accessClass(). -->
+        <div id="docAccess"></div>
       </div>
 
-
-      <!-- ── SIDEBAR ── -->
       <aside class="doc-sidebar">
 
-        <!-- Top action buttons: Cite + Actions -->
-        <div class="sidebar-actions">
-          <button class="btn btn--outline" onclick="openCiteModal()" title="Cite this document">
-            <span class="material-icons" style="font-size:1.1rem;">format_quote</span> Cite
-          </button>
+        <div class="sidebar-actions" id="docActions"></div>
 
-          <!-- Class A: show both -->
-          <a href="[your-file.pdf]" download class="btn btn--primary" title="Download PDF">
-            <span class="material-icons" style="font-size:1.1rem;">download</span> Download
-          </a>
-          <a href="[your-file.pdf]" target="_blank" class="btn btn--ghost" title="Open in new tab">
-            <span class="material-icons" style="font-size:1.1rem;">open_in_new</span>
-          </a>
-
-          <!-- Class B: comment out download, keep:
-          <a href="#" class="btn btn--outline" title="View at external source">
-            <span class="material-icons" style="font-size:1.1rem;">open_in_new</span> View source
-          </a>
-          -->
-
-          <!-- Class C: comment out both above, keep:
-          <a href="#" class="btn btn--ghost" title="View at external source">
-            <span class="material-icons" style="font-size:1.1rem;">open_in_new</span>
-          </a>
-          -->
+        <div class="sidebar-tags" id="docTagsWrap" style="display:none;">
+          <span class="sidebar-tags__label">Subjects</span>
+          <div class="tag-list" id="docTags"></div>
         </div>
 
-        <!-- Tags -->
-        <div class="sidebar-tags">
-          <span class="sidebar-tags__label">Tags</span>
-          <div class="tag-list">
-            <span class="tag">[Tag 1]</span>
-            <span class="tag">[Tag 2]</span>
-            <span class="tag">[Tag 3]</span>
-          </div>
-        </div>
-
-        <!-- Accordion group -->
         <div>
-
           <div class="accordion open" id="acc-info">
             <button class="accordion__trigger" onclick="toggleAcc('acc-info')">
-              Info <span class="accordion__arrow">▼</span>
+              Info <span class="accordion__arrow">&#9660;</span>
             </button>
             <div class="accordion__body" style="padding:0;">
-              <table class="detail-table">
-                <tr><td class="label">Year</td><td>Year</td></tr>
-                <tr><td class="label">Publisher</td><td>Publisher</td></tr>
-                <tr><td class="label">Location</td><td>Location</td></tr>
-                <tr><td class="label">Language</td><td>Language</td></tr>
-                <tr><td class="label">Pages</td><td>Pages</td></tr>
-                <tr><td class="label">Collection</td><td>Collection</td></tr>
-                <tr><td class="label">Format</td><td>Format</td></tr>
-                <tr><td class="label">Added</td><td>Added</td></tr>
-                <tr><td class="label">Source</td><td><a href="#">[Source institution]</a></td></tr>
-              </table>
+              <table class="detail-table" id="docInfo"></table>
             </div>
           </div>
 
           <div class="accordion" id="acc-terms">
             <button class="accordion__trigger" onclick="toggleAcc('acc-terms')">
-              Terms of Use &amp; Copyright <span class="accordion__arrow">▼</span>
+              Terms of Use &amp; Copyright <span class="accordion__arrow">&#9660;</span>
             </button>
             <div class="accordion__body">
-              <!-- Class A -->
-              <p style="font-size:.85rem; color:var(--ink-soft); line-height:1.75;">
-                This item is in the <strong>public domain</strong> or its copyright has expired.
-                It may be freely accessed, reproduced, downloaded, and shared without restriction.
-                Please credit the Bastrop County Archive when citing or reproducing this item.
-              </p>
-              <!-- Class B — swap with this:
-              <p style="font-size:.85rem; color:var(--ink-soft); line-height:1.75;">
-                This item is <strong>under copyright</strong>. It may be searched and referenced
-                but the full text cannot be downloaded or reproduced. A short excerpt and metadata
-                are provided for research purposes. To access the full text, please visit the
-                rights holder or institution listed under Info.
-              </p>
-              -->
-              <!-- Class C — swap with this:
-              <p style="font-size:.85rem; color:var(--ink-soft); line-height:1.75;">
-                This item is <strong>under copyright</strong> and its text contents cannot be
-                displayed or downloaded from this archive. Only title, author, and metadata are
-                shown. To access the full text, contact the rights holder listed under Info.
-              </p>
-              -->
+              <p id="docRights" style="font-size:.85rem; color:var(--ink-soft); line-height:1.75;"></p>
             </div>
           </div>
-
         </div>
       </aside>
     </div>
@@ -342,14 +272,12 @@
     </div>
     <div class="cite-modal__body">
 
-      <p class="cite-modal__doc-title">[Document Title]</p>
+      <p class="cite-modal__doc-title" id="citeTitle"></p>
 
       <div class="cite-row">
         <span class="cite-row__label">MLA</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-mla">
-            [Author Last], [First]. <em>[Title]</em>. [Publisher], [Year].
-          </div>
+          <div class="cite-row__text" id="cite-mla"></div>
           <button class="cite-copy" onclick="copyCite('cite-mla', this)">Copy</button>
         </div>
       </div>
@@ -357,9 +285,7 @@
       <div class="cite-row">
         <span class="cite-row__label">APA</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-apa">
-            [Author Last], [Initial]. ([Year]). <em>[Title]</em>. [Publisher].
-          </div>
+          <div class="cite-row__text" id="cite-apa"></div>
           <button class="cite-copy" onclick="copyCite('cite-apa', this)">Copy</button>
         </div>
       </div>
@@ -367,9 +293,7 @@
       <div class="cite-row">
         <span class="cite-row__label">Chicago</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-chicago">
-            [Author Last], [First]. <em>[Title]</em>. [Location]: [Publisher], [Year].
-          </div>
+          <div class="cite-row__text" id="cite-chicago"></div>
           <button class="cite-copy" onclick="copyCite('cite-chicago', this)">Copy</button>
         </div>
       </div>
@@ -377,9 +301,7 @@
       <div class="cite-row">
         <span class="cite-row__label">Harvard</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-harvard">
-            [Author Last], [Initial] ([Year]) <em>[Title]</em>. [Location]: [Publisher].
-          </div>
+          <div class="cite-row__text" id="cite-harvard"></div>
           <button class="cite-copy" onclick="copyCite('cite-harvard', this)">Copy</button>
         </div>
       </div>
@@ -390,33 +312,331 @@
 
 
 <script>
+// ──────────────────────────────────────────────────────────────────────────
+// Data layer — one document, from GET /documents
+//
+// The API has no per-document route (GET /documents/<id> is a 404), so the
+// page fetches the collection and picks out the id from the query string.
+// Swap fetchDocument() for a direct call once that route exists.
+//
+// Every field below is Dublin Core as stored on the record. Fields are rendered
+// only when the record actually carries them: archival metadata is uneven, and
+// a row reading "Unknown" is worse than no row.
+// ──────────────────────────────────────────────────────────────────────────
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+  { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+));
+
+/** DC fields are sometimes a list, sometimes a scalar, sometimes absent. */
+const asList = (v) => (Array.isArray(v) ? v : [v])
+  .map(x => String(x ?? '').trim())
+  .filter(Boolean);
+
+const asText = (v) => String(v ?? '').trim();
+
+/** ISO 639-2 codes as stored in dcLanguage. Unknown codes show as given. */
+const LANGUAGES = {
+  eng: 'English', spa: 'Spanish', fra: 'French', fre: 'French', deu: 'German',
+  ger: 'German', por: 'Portuguese', ita: 'Italian', lat: 'Latin', rus: 'Russian',
+  ara: 'Arabic', zho: 'Chinese', chi: 'Chinese', nav: 'Navajo', und: 'Undetermined',
+};
+const languageName = (code) => LANGUAGES[code.toLowerCase()] ?? code;
+
+/**
+ * rightsstatements.org URIs, as dcRights sometimes holds one of these rather
+ * than a phrase. Only the statement's short label is mapped; the long prose
+ * lives in rightsProse().
+ */
+const RIGHTS_LABELS = {
+  'InC':        'In Copyright',
+  'InC-EDU':    'In Copyright — Educational Use Permitted',
+  'InC-NC':     'In Copyright — Non-Commercial Use Permitted',
+  'InC-OW-EU':  'In Copyright — EU Orphan Work',
+  'NoC-US':     'No Copyright — United States',
+  'NoC-OKLR':   'No Copyright — Other Known Legal Restrictions',
+  'NKC':        'Copyright Not Evaluated',
+  'UND':        'Copyright Undetermined',
+  'CNE':        'Copyright Not Evaluated',
+};
+
+/** Split a rightsstatements.org URI down to its vocabulary code. */
+function rightsCode(rights) {
+  const m = /rightsstatements\.org\/vocab\/([A-Za-z-]+)/.exec(rights);
+  return m ? m[1] : null;
+}
+
+/** Short label for the Info table. */
+function rightsLabel(rights) {
+  const code = rightsCode(rights);
+  if (code) return RIGHTS_LABELS[code] ?? code;
+  return rights;
+}
+
+/** Is this item free of copyright restriction, as far as dcRights says? */
+function isOpen(rights) {
+  const code = rightsCode(rights);
+  if (code) return code.startsWith('NoC');
+  return /public domain|no known copyright|cc0/i.test(rights);
+}
+
+/** The prose shown under Terms of Use, keyed off dcRights. */
+function rightsProse(d) {
+  if (!d.rights) {
+    return 'The rights status of this item has not been recorded. Contact the archive '
+         + 'before reproducing it.';
+  }
+  if (isOpen(d.rights)) {
+    return `This item is in the <strong>public domain</strong> or free of known copyright `
+         + `restriction (${esc(rightsLabel(d.rights))}). It may be accessed, reproduced, and `
+         + `shared freely. Please credit the Bastrop County Archive when citing it.`;
+  }
+  const where = d.source ? ` The item is held by ${esc(d.source)}.` : '';
+  return `This item is <strong>under copyright</strong> (${esc(rightsLabel(d.rights))}). `
+       + `It may be searched and referenced here, but the full text cannot be downloaded `
+       + `or reproduced from this archive.${where} To consult the full text, contact the `
+       + `rights holder or the holding institution.`;
+}
+
+/** Normalise one API record into the shape this page renders. */
+function normalizeDocument(it) {
+  const identifiers = asText(it.dcIdentifier)
+    .split(';')
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  return {
+    documentId:  asText(it.documentId),
+    title:       asText(it.dcTitle) || '(untitled)',
+    creators:    asList(it.dcCreator),
+    contributors: asList(it.dcContributor),
+    description: asText(it.dcDescription),
+    date:        asText(it.dcDate) || asText(it.dateDisplay),
+    temporal:    asText(it.dcCoverageTemporal),
+    places:      asList(it.dcCoverageSpatial),
+    languages:   asList(it.dcLanguage).map(languageName),
+    publisher:   asText(it.dcPublisher),
+    format:      asText(it.dcFormat),
+    type:        asText(it.dcType),
+    source:      asText(it.dcSource),
+    subjects:    asList(it.dcSubject),
+    relations:   asList(it.dcRelation),
+    rights:      asText(it.dcRights),
+    identifiers,
+    // dcIdentifier doubles as a link when it holds a URL rather than an ISBN
+    // or call number, which is the only external target the record offers.
+    sourceUrl:   identifiers.find(x => /^https?:\/\//i.test(x)) ?? null,
+    // archivePdfUrl() (config.js) resolves the scan under
+    // archival-documents/<documentId>/pdf/ and serves it through CloudFront.
+    // Null means the archive holds no file for this record, which is the
+    // normal case while the collection is still being uploaded.
+    pdfUrl:      archivePdfUrl(it),
+    datasetUrl:  archiveDatasetUrl(it),
+    rowCount:    Number(it.rowCount) || 0,
+    sheetCount:  Number(it.sheetCount) || 0,
+    pageCount:   Number(it.pageCount) > 0 ? Number(it.pageCount) : null,
+  };
+}
+
+/**
+ * Which of the three access presentations this document gets.
+ *   A: the file is viewable here, so embed it and offer a download.
+ *   B: not viewable, but the record points somewhere that holds it.
+ *   C: metadata only.
+ */
+function accessClass(d) {
+  // D before A: a dataset record is downloaded, not read in a viewer. The
+  // browser has no spreadsheet renderer, so embedding one would show a download
+  // prompt inside an iframe, which reads as a broken page.
+  if (d.datasetUrl) return 'D';
+  if (d.pdfUrl) return 'A';
+  if (d.sourceUrl) return 'B';
+  return 'C';
+}
+
+/** "13,035 rows across 14 sheets", or as much of it as the record knows. */
+function extentProse(d) {
+  const parts = [];
+  if (d.rowCount) parts.push(`${d.rowCount.toLocaleString()} rows`);
+  if (d.sheetCount) parts.push(`${d.sheetCount} sheet${d.sheetCount === 1 ? '' : 's'}`);
+  return parts.join(' across ');
+}
+
+/** One row of the Info table, or nothing when the field is absent. */
+function row(label, html) {
+  return html ? `<tr><td class="label">${esc(label)}</td><td>${html}</td></tr>` : '';
+}
+
+const plain = (v) => v ? esc(v) : '';
+const list  = (arr) => arr.length ? arr.map(esc).join('<br>') : '';
+
+let currentDoc = null;
+
+function renderDocument(d) {
+  currentDoc = d;
+  document.title = `${d.title} — Bastrop County Archive`;
+
+  document.getElementById('docTitle').textContent = d.title;
+  document.getElementById('docAuthor').textContent = d.creators.join('; ');
+  document.getElementById('docAuthor').style.display = d.creators.length ? '' : 'none';
+
+  // Abstract: hide the whole accordion rather than show an empty panel.
+  const abstract = document.getElementById('acc-abstract');
+  if (d.description) {
+    document.getElementById('docAbstract').textContent = d.description;
+  } else {
+    abstract.style.display = 'none';
+  }
+
+  renderAccess(d);
+  renderActions(d);
+
+  const tags = d.subjects.map(s => `<span class="tag">${esc(s)}</span>`).join('');
+  document.getElementById('docTags').innerHTML = tags;
+  document.getElementById('docTagsWrap').style.display = tags ? '' : 'none';
+
+  const ids = d.identifiers.map(x => /^https?:\/\//i.test(x)
+    ? `<a href="${esc(x)}" target="_blank" rel="noopener noreferrer">${esc(x)}</a>`
+    : esc(x)).join('<br>');
+
+  document.getElementById('docInfo').innerHTML = [
+    row('Date', plain(d.date)),
+    row('Period', plain(d.temporal)),
+    row('Type', plain(d.type)),
+    row('Format', plain(d.format)),
+    row('Pages', d.pageCount ? esc(String(d.pageCount)) : ''),
+    row('Publisher', plain(d.publisher)),
+    row('Place', list(d.places)),
+    row('Language', list(d.languages)),
+    row('Contributors', list(d.contributors)),
+    row('Collection', plain(d.source)),
+    row('Rights', plain(rightsLabel(d.rights))),
+    row('Related', list(d.relations)),
+    row(d.identifiers.length > 1 ? 'Identifiers' : 'Identifier', ids),
+  ].join('');
+
+  document.getElementById('docRights').innerHTML = rightsProse(d);
+
+  document.getElementById('docLoading').style.display = 'none';
+  document.getElementById('docLayout').style.display = '';
+}
+
+function renderAccess(d) {
+  // The viewer's own page controls sit bottom-right, where the chat bubble
+  // lives. This class lifts the bubble clear of them; see .has-pdf in style.css.
+  document.body.classList.toggle('has-pdf', accessClass(d) === 'A');
+
+  const where = d.sourceUrl
+    ? `<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(d.source || d.sourceUrl)}</a>`
+    : esc(d.source || 'the holding institution');
+
+  const blocks = {
+    // #view=FitH opens at page width. Scans run to tens of megabytes; the
+    // distribution answers range requests, so the built-in viewer streams the
+    // file a page at a time instead of waiting for the whole download.
+    A: `<iframe class="pdf-embed" src="${esc(d.pdfUrl)}#view=FitH"
+                title="${esc(d.title)}" loading="lazy"></iframe>`,
+    B: `<div class="access-notice">
+          <div>The full text is not available for display here. It can be consulted at
+          ${where}.</div>
+        </div>`,
+    C: `<div class="access-notice">
+          <div>This record is metadata only: the text cannot be displayed or downloaded
+          from the archive. To consult the item, contact ${where}.</div>
+        </div>`,
+    D: `<div class="access-notice">
+          <div>This is a tabular dataset${extentProse(d) ? ` of ${extentProse(d)}` : ''},
+          available as a spreadsheet download. Open it in Excel, Numbers, R, or
+          Python; the sheets are listed in the description above.</div>
+        </div>`,
+  };
+  document.getElementById('docAccess').innerHTML = blocks[accessClass(d)];
+}
+
+function renderActions(d) {
+  const cite = `<button class="btn btn--outline" onclick="citeDocument()" title="Cite this document">
+      <span class="material-icons" style="font-size:1.1rem;">format_quote</span> Cite
+    </button>`;
+
+  const extra = {
+    A: `<a href="${esc(d.pdfUrl)}" download class="btn btn--primary" title="Download PDF">
+          <span class="material-icons" style="font-size:1.1rem;">download</span> Download
+        </a>
+        <a href="${esc(d.pdfUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn--ghost" title="Open in new tab">
+          <span class="material-icons" style="font-size:1.1rem;">open_in_new</span>
+        </a>`,
+    B: `<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn--outline" title="View at external source">
+          <span class="material-icons" style="font-size:1.1rem;">open_in_new</span> View source
+        </a>`,
+    D: `<a href="${esc(d.datasetUrl)}" download class="btn btn--primary" title="Download the dataset">
+          <span class="material-icons" style="font-size:1.1rem;">download</span> Download spreadsheet
+        </a>`,
+    C: '',
+  };
+  document.getElementById('docActions').innerHTML = cite + extra[accessClass(d)];
+}
+
+/**
+ * Cite the document on screen. citations() lives in cite.js and is shared with
+ * the archive list, so both places render the same four styles.
+ */
+function citeDocument() {
+  if (!currentDoc) return;
+  openCiteModal({
+    title:     currentDoc.title,
+    creators:  currentDoc.creators,
+    publisher: currentDoc.publisher,
+    date:      currentDoc.date,
+  });
+}
+
+function showDocError(message) {
+  document.getElementById('docLoading').style.display = 'none';
+  document.getElementById('docLayout').style.display = 'none';
+  document.getElementById('docErrorDetail').textContent = message;
+  document.getElementById('docError').style.display = '';
+}
+
+async function loadDocument() {
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) {
+    showDocError('No document id in the address. Open a document from the archive listing.');
+    return;
+  }
+
+  try {
+    // No custom headers: this stays a CORS "simple request", so the browser
+    // never needs to send an OPTIONS preflight.
+    const res = await fetch(`${API_BASE_URL}/documents`);
+    if (!res.ok) throw new Error(`The archive API returned HTTP ${res.status} ${res.statusText}.`);
+    const body = await res.json();
+    const raw = Array.isArray(body) ? body : (body.items ?? []);
+    if (!Array.isArray(raw)) throw new Error('The archive API returned an unexpected response shape.');
+
+    const match = raw.find(it => String(it.documentId ?? '') === id);
+    if (!match) {
+      showDocError(`No document in the archive has the id "${id}".`);
+      return;
+    }
+    renderDocument(normalizeDocument(match));
+  } catch (err) {
+    console.error('GET /documents failed:', err);
+    showDocError(err instanceof TypeError
+      ? 'Could not reach the archive API. Check your connection and that the API allows this origin.'
+      : err.message);
+  }
+}
+
+loadDocument();
+</script>
+
+<script>
 function toggleAcc(id) {
   document.getElementById(id).classList.toggle('open');
-}
-
-function openCiteModal() {
-  document.getElementById('citeBackdrop').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeCiteModal() {
-  document.getElementById('citeBackdrop').classList.remove('open');
-  document.body.style.overflow = '';
-}
-function closeCiteOnBackdrop(e) {
-  if (e.target === document.getElementById('citeBackdrop')) closeCiteModal();
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCiteModal(); });
-
-function copyCite(id, btn) {
-  const text = document.getElementById(id).innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  });
 }
 </script>
 
 <script>renderShell('Archive');</script>
+<script src="chat.js"></script>
 </body>
 </html>
