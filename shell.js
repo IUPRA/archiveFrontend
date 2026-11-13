@@ -2,8 +2,8 @@
 // active page is passed as a string matching the nav link text
 
 function renderShell(activePage) {
-  const nav = ['Home','Blog','Archive','About'];
-  const links = { Home:'index.html', Blog:'blog.html', Archive:'archive.html', About:'about.html' };
+  const nav = ['Home','Blog','Archive','Maps','About'];
+  const links = { Home:'index.html', Blog:'blog.html', Archive:'archive.html', Maps:'maps.html', About:'about.html' };
 
   const navHTML = nav.map(n =>
     `<a href="${links[n]}" class="${n===activePage?'active':''}">${n}</a>`
@@ -39,6 +39,7 @@ function renderShell(activePage) {
         <li><a href="index.html">Home</a></li>
         <li><a href="blog.html">Blog</a></li>
         <li><a href="archive.html">Document Archive</a></li>
+        <li><a href="maps.html">Maps</a></li>
         <li><a href="about.html">About</a></li>
       </ul>
     </div>

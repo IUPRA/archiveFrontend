@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maps — Bastrop County Archive</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main>
+
+  <div class="page-hero">
+    <div class="container">
+      <h1>Maps</h1>
+      <p>Historical and interpretive maps of Bastrop County — plats, birds-eye views, and project-made overlays.</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ── FEATURED MAP ── -->
+    <section class="home-section" style="padding-bottom:2rem;">
+      <div class="map-feature">
+        <div class="map-feature__viewer">
+          <!-- Swap this placeholder for an <img>, an <iframe>, or a Leaflet
+               container once the map tiles are hosted. -->
+          <div class="ph" style="height:100%;">featured_map — interactive viewer goes here</div>
+        </div>
+        <div class="map-feature__body">
+          <span class="tag tag--rust">Featured</span>
+          <h2>Bastrop Birds-Eye View, 1886</h2>
+          <p class="map-feature__meta">Lithograph · Scale unknown · Bastrop City</p>
+          <p>[Two or three sentences: what the map shows, who made it, and why it
+             matters to the archive — e.g. which neighborhoods, churches, or
+             schools it documents.]</p>
+          <div class="map-feature__actions">
+            <a href="#" class="btn btn--primary btn--sm">Open full map</a>
+            <a href="#" class="btn btn--outline btn--sm">Download GeoTIFF</a>
+            <a href="archive.html" class="btn btn--ghost btn--sm">Related documents →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── MAP COLLECTION ── -->
+    <section class="home-section" style="padding-top:1rem;">
+      <div class="section-header">
+        <h2>Map Collection</h2>
+        <a href="archive.html" class="btn btn--outline btn--sm">Browse the Archive</a>
+      </div>
+
+      <!-- Category filter — same button styling as the census year picker -->
+      <div class="census-years" id="mapFilters">
+        <button class="census-year-btn active" onclick="filterMaps(this,'all')">All</button>
+        <button class="census-year-btn" onclick="filterMaps(this,'historical')">Historical</button>
+        <button class="census-year-btn" onclick="filterMaps(this,'plat')">Plats &amp; Surveys</button>
+        <button class="census-year-btn" onclick="filterMaps(this,'census')">Census Overlays</button>
+        <button class="census-year-btn" onclick="filterMaps(this,'project')">Project-Made</button>
+      </div>
+
+      <!-- Repeat this card block for each map; data-cat drives the filter above -->
+      <div class="map-grid" id="mapGrid">
+
+        <article class="map-card" data-cat="historical">
+          <div class="ph map-card__img">map_image_1 — ~600×220px</div>
+          <div class="map-card__body">
+            <p class="map-card__meta">1886 · Lithograph</p>
+            <h3 class="map-card__title"><a href="#">Bastrop Birds-Eye View</a></h3>
+            <p class="map-card__excerpt">[1–2 sentence description of coverage and condition.]</p>
+            <div class="map-card__footer">
+              <span class="tag">Historical</span>
+              <a href="#" class="btn btn--ghost btn--sm">View map →</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="map-card" data-cat="plat">
+          <div class="ph map-card__img">map_image_2 — ~600×220px</div>
+          <div class="map-card__body">
+            <p class="map-card__meta">[Year] · [Type]</p>
+            <h3 class="map-card__title"><a href="#">[Plat or survey title]</a></h3>
+            <p class="map-card__excerpt">[1–2 sentence description of coverage and condition.]</p>
+            <div class="map-card__footer">
+              <span class="tag">Plats &amp; Surveys</span>
+              <a href="#" class="btn btn--ghost btn--sm">View map →</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="map-card" data-cat="census">
+          <div class="ph map-card__img">map_image_3 — ~600×220px</div>
+          <div class="map-card__body">
+            <p class="map-card__meta">1850–1950 · Overlay</p>
+            <h3 class="map-card__title"><a href="#">[Census overlay title]</a></h3>
+            <p class="map-card__excerpt">[1–2 sentences: which census years the overlay joins and what it reveals.]</p>
+            <div class="map-card__footer">
+              <span class="tag">Census Overlay</span>
+              <a href="#" class="btn btn--ghost btn--sm">View map →</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="map-card" data-cat="project">
+          <div class="ph map-card__img">map_image_4 — ~600×220px</div>
+          <div class="map-card__body">
+            <p class="map-card__meta">[Year] · IRP</p>
+            <h3 class="map-card__title"><a href="#">[Project-made map title]</a></h3>
+            <p class="map-card__excerpt">[1–2 sentences: the methodology behind the map and its sources.]</p>
+            <div class="map-card__footer">
+              <span class="tag">Project-Made</span>
+              <a href="#" class="btn btn--ghost btn--sm">View map →</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Add more cards as needed -->
+
+      </div>
+
+      <p class="no-results" id="noMaps" style="display:none;text-align:center;padding:3rem;color:var(--muted);">
+        No maps in this category yet.
+      </p>
+    </section>
+
+    <!-- ── METHODOLOGY NOTE ── -->
+    <section style="padding-bottom:4rem;">
+      <div class="census-intro">
+        <p><strong>How these maps were made.</strong> [Short note on georeferencing,
+        source repositories, and licensing — plus who to contact about reuse.]</p>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<script>
+// Category filter. Cards carry data-cat; "all" clears the filter.
+function filterMaps(btn, cat) {
+  document.querySelectorAll('#mapFilters .census-year-btn')
+    .forEach(b => b.classList.toggle('active', b === btn));
+
+  let shown = 0;
+  document.querySelectorAll('#mapGrid .map-card').forEach(card => {
+    const match = cat === 'all' || card.dataset.cat === cat;
+    card.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+
+  document.getElementById('noMaps').style.display = shown ? 'none' : 'block';
+}
+</script>
+
+<script src="config.js"></script>
+<script src="shell.js"></script>
+<script>renderShell('Maps');</script>
+<script src="chat.js"></script>
+</body>
+</html>

@@ -8,6 +8,9 @@
 </head>
 <body>
 
+<script src="config.js"></script>
+<script src="cite.js"></script>
+
 <main>
 
   <div class="page-hero">
@@ -22,8 +25,8 @@
     <!-- Search bar -->
     <div style="margin-top:2rem;">
       <div class="archive-search-bar">
-        <input type="text" id="searchInput" placeholder="Search by title, author, keyword…">
-        <button onclick="applyFilters()">Search</button>
+        <input type="text" id="searchInput" placeholder="Describe what you're looking for, then press Enter…">
+        <button onclick="runSemanticSearch()">Search</button>
       </div>
     </div>
 
@@ -41,37 +44,26 @@
         <aside class="filter-sidebar">
           <h3>Filters</h3>
 
-          <div class="filter-group">
+          <!-- Every control below is built by buildFacets() from the documents
+               that were actually fetched, so the options cannot drift away from
+               the data. A facet with nothing in it hides itself. -->
+
+          <div class="filter-group" id="yearGroup" style="display:none;">
             <label class="filter-label">Publication Year (up to)</label>
-            <input type="range" id="yearFilter" min="1850" max="1950" value="1950">
-            <div class="range-labels"><span>1850</span><span id="yearVal">1950</span></div>
+            <input type="range" id="yearFilter">
+            <div class="range-labels"><span id="yearMin"></span><span id="yearVal"></span></div>
           </div>
 
-          <div class="filter-group">
+          <div class="filter-group" id="locationGroup" style="display:none;">
             <label class="filter-label">Location</label>
             <select id="locationFilter">
               <option value="">All Locations</option>
-              <option>Bastrop City</option>
-              <option>Smithville</option>
-              <option>Elgin</option>
             </select>
           </div>
 
-          <div class="filter-group">
-            <label class="filter-label">Tags</label>
-            <!-- Repeat .filter-option for each tag in your dataset -->
-            <label class="filter-option">
-              <input type="checkbox" class="tag-filter" value="tag1"> [Tag 1]
-            </label>
-            <label class="filter-option">
-              <input type="checkbox" class="tag-filter" value="tag2"> [Tag 2]
-            </label>
-            <label class="filter-option">
-              <input type="checkbox" class="tag-filter" value="tag3"> [Tag 3]
-            </label>
-            <label class="filter-option">
-              <input type="checkbox" class="tag-filter" value="tag4"> [Tag 4]
-            </label>
+          <div class="filter-group" id="subjectGroup" style="display:none;">
+            <label class="filter-label">Subjects</label>
+            <div id="subjectFilters"></div>
           </div>
 
           <button class="filter-clear" onclick="clearFilters()">Clear all filters</button>
@@ -83,79 +75,22 @@
             <span class="results-count" id="resultsCount">— documents</span>
           </div>
 
-          <div id="results">
+          <!-- Cards are rendered from GET /documents by loadDocuments(); see script below. -->
+          <div id="results"></div>
 
-            <!-- Repeat this block for each document -->
+          <p id="loadingState" style="text-align:center;padding:3rem;color:var(--muted);">
+            Loading documents…
+          </p>
 
-            <article class="result-card doc"
-              data-year=""
-              data-location=""
-              data-tags="[tag1],[tag2]"
-              data-title="[title lowercase]"
-              data-description="[description lowercase]">
-              <h3><a href="document.html">Document title</a></h3>
-              <div class="result-meta">
-                <span>Year</span>
-                <span>Author</span>
-                <span>Location</span>
-              </div>
-              <p class="result-snippet">Abstract or short description of the document.</p>
-              <div class="tag-list">
-                <span class="tag">Tag 1</span>
-                <span class="tag">Tag 2</span>
-              </div>
-              <div class="result-card__actions">
-                <a href="document.html" class="btn btn--outline btn--sm">View Document</a>
-                <button class="btn btn--ghost btn--sm" onclick="openCiteModal()">Cite</button>
-              </div>
-            </article>
-
-            <article class="result-card doc"
-              data-year="[YEAR]"
-              data-location="[LOCATION]"
-              data-tags="[tag1]"
-              data-title="[title lowercase]"
-              data-description="[description lowercase]">
-              <h3><a href="document.html">Document title</a></h3>
-              <div class="result-meta">
-                <span>Year</span>
-                <span>Author</span>
-                <span>Location</span>
-              </div>
-              <p class="result-snippet">short description.</p>
-              <div class="tag-list">
-                <span class="tag">Tag 1</span>
-              </div>
-              <div class="result-card__actions">
-                <a href="document.html" class="btn btn--outline btn--sm">View Document</a>
-                <button class="btn btn--ghost btn--sm" onclick="openCiteModal()">Cite</button>
-              </div>
-            </article>
-
-            <article class="result-card doc"
-              data-year="[YEAR]"
-              data-location="[LOCATION]"
-              data-tags="[tag1],[tag3]"
-              data-title="[title lowercase]"
-              data-description="[description lowercase]">
-              <h3><a href="document.html">Document title</a></h3>
-              <div class="result-meta">
-                <span>Year</span>
-                <span>Author</span>
-                <span>Location</span>
-              </div>
-              <p class="result-snippet">short description.</p>
-              <div class="tag-list">
-                <span class="tag">Tag 1</span>
-                <span class="tag">Tag 3</span>
-              </div>
-              <div class="result-card__actions">
-                <a href="document.html" class="btn btn--outline btn--sm">View Document</a>
-                <button class="btn btn--ghost btn--sm" onclick="openCiteModal()">Cite</button>
-              </div>
-            </article>
-
+          <div id="loadError" role="alert" style="display:none;padding:1.25rem;margin-bottom:1rem;
+               border:1px solid var(--border);border-left:3px solid var(--rust);background:var(--sand);">
+            <strong style="display:block;margin-bottom:.35rem;color:var(--ink);">Could not load documents</strong>
+            <span id="loadErrorDetail" style="color:var(--ink-soft);font-size:.88rem;"></span>
+            <div style="margin-top:.75rem;">
+              <button class="btn btn--outline btn--sm" onclick="loadDocuments()">Retry</button>
+            </div>
           </div>
+
 
           <p class="no-results" id="noResults" style="display:none;text-align:center;padding:3rem;color:var(--muted);">
             No results match your search.
@@ -168,35 +103,13 @@
     <!-- ── CENSUS TAB ── -->
     <div id="panel-census" style="display:none; padding-bottom:3rem;">
 
-      <div class="census-years">
-        <button class="census-year-btn active" onclick="selectCensusYear(this,'1850')">1850</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1860')">1860</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1870')">1870</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1880')">1880</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1890')">1890</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1900')">1900</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1910')">1910</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1920')">1920</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1930')">1930</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1940')">1940</button>
-        <button class="census-year-btn" onclick="selectCensusYear(this,'1950')">1950</button>
-      </div>
-
-      <div id="censusContent">
-        <div class="result-card">
-          <h3>1850 Census — Bastrop County, TX</h3>
-          <div class="result-meta">
-            <span>U.S. Federal Census</span>
-            <span>Bastrop County</span>
-          </div>
-          <p class="result-snippet">Description for the 1850 census dataset.</p>
-          <div class="result-card__actions" style="margin-top:1rem;">
-            <a href="#" class="btn btn--primary btn--sm">Download CSV</a>
-            <a href="#" class="btn btn--outline btn--sm">Browse Records</a>
-            <a href="#" class="btn btn--ghost btn--sm">Methodology</a>
-          </div>
-        </div>
-      </div>
+      <!-- Years and cards are both rendered from the fetched documents by
+           renderCensus(). There are deliberately no hardcoded year buttons: the
+           previous version shipped a fixed 1850-1950 bar that advertised an 1890
+           dataset, which cannot exist because the 1890 schedules were destroyed
+           by fire in 1921, and three dead "#" links per card. -->
+      <div class="census-years" id="censusYears"></div>
+      <div id="censusContent"></div>
 
     </div>
 
@@ -204,62 +117,313 @@
 </main>
 
 <script>
-// Tab switching
-function switchTab(tab) {
+// ── Tab switching ─────────────────────────────────────────────────────────
+//
+// The tab lives in the URL fragment (archive.html#census) so other pages can
+// link straight to it and the browser's back button moves between tabs.
+
+function switchTab(tab, updateHash = true) {
   document.getElementById('panel-docs').style.display   = tab === 'docs'   ? '' : 'none';
   document.getElementById('panel-census').style.display = tab === 'census' ? '' : 'none';
   document.getElementById('tab-docs').classList.toggle('active',   tab === 'docs');
   document.getElementById('tab-census').classList.toggle('active', tab === 'census');
+
+  // replaceState rather than assigning location.hash: this keeps the address
+  // bar honest without pushing a history entry for every click, and without
+  // the jump-to-anchor scroll that setting the hash directly would cause.
+  if (updateHash) {
+    const url = tab === 'census' ? '#census' : location.pathname + location.search;
+    try { history.replaceState(null, '', url); } catch { /* file:// can refuse this */ }
+  }
 }
 
-// Census year selector
-function selectCensusYear(btn, year) {
-  document.querySelectorAll('#panel-census .census-year-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('censusContent').innerHTML = `
+/** Open whichever tab the fragment names. Anything else falls back to docs. */
+function tabFromHash() {
+  return location.hash.replace('#', '') === 'census' ? 'census' : 'docs';
+}
+
+switchTab(tabFromHash(), false);
+window.addEventListener('hashchange', () => switchTab(tabFromHash(), false));
+
+// ──────────────────────────────────────────────────────────────────────────
+// Census tab
+//
+// Driven entirely by the fetched records: a census dataset is a document with
+// dcType "Dataset", which is also what GSI2PK keys on, so the two agree by
+// construction. Years come from firstYear(), the same parse the slider uses.
+
+let censusYear = null;
+
+function censusDatasets() {
+  return documents
+    .filter(isDataset)
+    .sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+}
+
+function renderCensus() {
+  const sets = censusDatasets();
+  const years = [...new Set(sets.map(d => d.year).filter(Boolean))].sort();
+
+  if (!sets.length) {
+    document.getElementById('censusYears').innerHTML = '';
+    document.getElementById('censusContent').innerHTML =
+      `<div class="census-intro"><p>No census datasets have been published yet.</p></div>`;
+    return;
+  }
+
+  if (censusYear && !years.includes(censusYear)) censusYear = null;
+
+  document.getElementById('censusYears').innerHTML =
+    [{ y: null, label: 'All years', n: sets.length }]
+      .concat(years.map(y => ({ y, label: String(y), n: sets.filter(d => d.year === y).length })))
+      .map(t => `<button class="census-year-btn ${t.y === censusYear ? 'active' : ''}"
+                    onclick="selectCensusYear(${t.y === null ? 'null' : t.y})"
+                    aria-pressed="${t.y === censusYear}">${esc(t.label)}</button>`)
+      .join('');
+
+  const shown = censusYear ? sets.filter(d => d.year === censusYear) : sets;
+  document.getElementById('censusContent').innerHTML = shown.map(censusCard).join('');
+}
+
+/** Trim a description for a card, breaking on a word rather than mid-syllable.
+ *
+ * A dataset description lists every sheet in the workbook, which runs to a
+ * paragraph and would swamp the card. The full text is on the document page,
+ * which is one click away and is where someone reading the sheet list is
+ * actually headed. */
+function snippet(text, max = 240) {
+  const t = String(text).trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const space = cut.lastIndexOf(' ');
+  return (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[,;:.]$/, '') + '…';
+}
+
+function censusCard(d) {
+  const extent = [
+    d.rowCount ? `${Number(d.rowCount).toLocaleString()} rows` : '',
+    d.sheetCount ? `${d.sheetCount} sheet${Number(d.sheetCount) === 1 ? '' : 's'}` : '',
+  ].filter(Boolean).join(' · ');
+
+  const url = d.datasetUrl;
+  // A dataset with no file yet still lists, with its metadata; it simply has
+  // nothing to download. Rendering nothing would hide the record entirely.
+  const actions = [
+    url ? `<a href="${esc(url)}" download class="btn btn--primary btn--sm">Download spreadsheet</a>` : '',
+    `<a href="document.html?id=${encodeURIComponent(d.documentId)}" class="btn btn--outline btn--sm">Details &amp; citation</a>`,
+  ].filter(Boolean).join('');
+
+  return `
     <div class="result-card">
-      <h3>${year} Census — Bastrop County, TX</h3>
-      <div class="result-meta"><span>U.S. Federal Census</span><span>Bastrop County</span></div>
-      <p class="result-snippet">Description for the ${year} census dataset.</p>
-      <div class="result-card__actions" style="margin-top:1rem;">
-        <a href="#" class="btn btn--primary btn--sm">Download CSV</a>
-        <a href="#" class="btn btn--outline btn--sm">Browse Records</a>
-        <a href="#" class="btn btn--ghost btn--sm">Methodology</a>
+      <h3><a href="document.html?id=${encodeURIComponent(d.documentId)}">${esc(d.title)}</a></h3>
+      <div class="result-meta">
+        ${d.dateDisplay ? `<span>${esc(d.dateDisplay)}</span>` : ''}
+        ${extent ? `<span>${esc(extent)}</span>` : ''}
+        ${d.locations.length ? `<span>${esc(d.locations[0])}</span>` : ''}
       </div>
+      ${d.description ? `<p class="result-snippet">${esc(snippet(d.description))}</p>` : ''}
+      <div class="result-card__actions" style="margin-top:1rem;">${actions}</div>
     </div>`;
 }
 
+/** Called from the generated year bar, so it must stay global. */
+function selectCensusYear(year) {
+  censusYear = year;
+  renderCensus();
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // Filters
+//
+// Filtering runs over the normalised `documents` array and re-renders the
+// results list. It deliberately does not test data-* attributes on the cards:
+// those flatten arrays into comma-joined strings, which turns "match this
+// subject" into a substring test where "History" also matches "American
+// History", and leaves multi-valued fields like dcCoverageSpatial only
+// partially searchable.
+//
+// The facet controls are derived from the same array, so an option exists only
+// when some document carries that value.
+// ──────────────────────────────────────────────────────────────────────────
+
 const yearSlider = document.getElementById('yearFilter');
 const yearLabel  = document.getElementById('yearVal');
-if (yearSlider) yearSlider.addEventListener('input', () => { yearLabel.textContent = yearSlider.value; applyFilters(); });
+
+if (yearSlider) yearSlider.addEventListener('input', () => {
+  yearLabel.textContent = yearSlider.value;
+  applyFilters();
+});
 document.getElementById('locationFilter')?.addEventListener('change', applyFilters);
-document.getElementById('searchInput')?.addEventListener('input', applyFilters);
-document.querySelectorAll('.tag-filter').forEach(c => c.addEventListener('change', applyFilters));
+// Typing deliberately does NOT search. A semantic search costs an embedding
+// call and a vector query, so firing one per keystroke would be slow, wasteful
+// and would show results for half-typed words. Submit with Enter or the button.
+//
+// The one exception is clearing the box, which is a reset rather than a search:
+// it drops the semantic result set and returns to the full browse list.
+document.getElementById('searchInput')?.addEventListener('input', () => {
+  if (semanticResults && !document.getElementById('searchInput').value.trim()) {
+    semanticResults = null;
+    applyFilters();
+  }
+});
+document.getElementById('searchInput')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); runSemanticSearch(); }
+});
+
+/** Distinct values across a multi-valued field, with how many documents use each. */
+function countValues(docs, pick) {
+  const counts = new Map();
+  docs.forEach(d => new Set(pick(d)).forEach(v => counts.set(v, (counts.get(v) ?? 0) + 1)));
+  return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+/** Build the year slider, location options and subject checkboxes from the data. */
+function buildFacets(docs) {
+  // Year: only documents that actually carry one count toward the range.
+  const years = docs.map(d => d.year).filter(y => Number.isFinite(y));
+  const yearGroup = document.getElementById('yearGroup');
+  if (years.length) {
+    const lo = Math.min(...years), hi = Math.max(...years);
+    // A collection spanning a single year has nothing to slide.
+    yearGroup.style.display = lo === hi ? 'none' : '';
+    yearSlider.min = lo;
+    yearSlider.max = hi;
+    yearSlider.value = hi;
+    document.getElementById('yearMin').textContent = lo;
+    yearLabel.textContent = hi;
+  } else {
+    yearGroup.style.display = 'none';
+  }
+
+  const locations = countValues(docs, d => d.locations);
+  const locSelect = document.getElementById('locationFilter');
+  locSelect.innerHTML = '<option value="">All Locations</option>' + locations
+    .map(([v, n]) => `<option value="${esc(v)}">${esc(v)} (${n})</option>`)
+    .join('');
+  document.getElementById('locationGroup').style.display = locations.length ? '' : 'none';
+
+  const subjects = countValues(docs, d => d.subjects);
+  document.getElementById('subjectFilters').innerHTML = subjects
+    .map(([v, n]) => `
+      <label class="filter-option">
+        <input type="checkbox" class="tag-filter" value="${esc(v)}"> ${esc(v)} (${n})
+      </label>`)
+    .join('');
+  document.getElementById('subjectGroup').style.display = subjects.length ? '' : 'none';
+  document.querySelectorAll('.tag-filter')
+    .forEach(c => c.addEventListener('change', applyFilters));
+}
+
+
+/** Does one document pass the current filter state? */
+function matchesFilters(d, f) {
+  // An undated document is not excluded by the year slider: the archive holds
+  // items whose date is unknown, and silently hiding them would misreport the
+  // collection. Give them a date upstream to make them filterable.
+  if (f.maxYear !== null && Number.isFinite(d.year) && d.year > f.maxYear) return false;
+
+  // Exact match against any of the document's places, not just the first.
+  if (f.location && !d.locations.includes(f.location)) return false;
+
+  // Subjects are OR'd within the facet, which is what a checkbox list usually
+  // means, and matched exactly rather than by substring.
+  if (f.subjects.length && !f.subjects.some(t => d.subjects.includes(t))) return false;
+
+  // No text test here. The query box is a semantic search, run on submit by
+  // runSemanticSearch(), not a substring filter applied per keystroke. The
+  // sidebar narrows whatever set is on screen; it does not decide the set.
+  return true;
+}
+
+function currentFilters() {
+  const yearActive = yearSlider && document.getElementById('yearGroup').style.display !== 'none';
+  return {
+    maxYear:  yearActive ? parseInt(yearSlider.value, 10) : null,
+    location: document.getElementById('locationFilter')?.value || '',
+    subjects: [...document.querySelectorAll('.tag-filter:checked')].map(c => c.value),
+  };
+}
+
+/**
+ * Results of the last semantic search, or null when browsing.
+ *
+ * Semantic search and the filter sidebar are deliberately not the same thing.
+ * The sidebar narrows a set the browser already holds; semantic search asks the
+ * API for a different, ranked set. When one is active the other still applies —
+ * you can semantically search, then filter by subject — but the text box no
+ * longer substring-matches, because its text has already been used as meaning
+ * rather than as characters.
+ */
+let semanticResults = null;
+
+/** Records belonging in the Historical Documents tab: everything but datasets.
+ *
+ * The two tabs partition the collection on dcType, the same split GSI2 keys on
+ * (PUBLISHED#Text versus PUBLISHED#Dataset). Without this the ten census
+ * spreadsheets would also fill the Documents list, and the subject and location
+ * facets would be dominated by "Census" and "Bastrop County, Texas". */
+function isDataset(d) {
+  return String(d.type).toLowerCase() === 'dataset';
+}
 
 function applyFilters() {
-  const maxYear  = parseInt(yearSlider?.value || 9999);
-  const loc      = document.getElementById('locationFilter')?.value || '';
-  const tags     = Array.from(document.querySelectorAll('.tag-filter:checked')).map(c => c.value);
-  const q        = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-  const docs     = document.querySelectorAll('.doc');
-  let visible    = 0;
+  const f = currentFilters();
+  const source = (semanticResults ?? documents).filter(d => !isDataset(d));
+  const visible = source.filter(d => matchesFilters(d, f));
 
-  docs.forEach(doc => {
-    let show = true;
-    if (parseInt(doc.dataset.year) > maxYear) show = false;
-    if (loc && doc.dataset.location !== loc) show = false;
-    if (tags.length && !tags.some(t => doc.dataset.tags.includes(t))) show = false;
-    if (q && !doc.dataset.title.includes(q) && !doc.dataset.description.includes(q)) show = false;
-    doc.style.display = show ? '' : 'none';
-    if (show) visible++;
-  });
+  document.getElementById('results').innerHTML = visible.map(renderCard).join('');
+  document.getElementById('resultsCount').textContent = semanticResults
+    ? `${visible.length} semantic match${visible.length !== 1 ? 'es' : ''}`
+    : `${visible.length} document${visible.length !== 1 ? 's' : ''}`;
+  document.getElementById('noResults').style.display = visible.length ? 'none' : '';
+}
 
-  document.getElementById('resultsCount').textContent = `${visible} document${visible !== 1 ? 's' : ''}`;
-  document.getElementById('noResults').style.display = visible === 0 ? '' : 'none';
+/**
+ * Ask the API for documents that mean what the box says.
+ *
+ * An empty box is treated as "stop searching" rather than an error: it drops
+ * back to the full browse list, which is what clearing a search should do.
+ */
+async function runSemanticSearch() {
+  const box = document.getElementById('searchInput');
+  const q = (box?.value || '').trim();
+
+  if (!q) {
+    semanticResults = null;
+    applyFilters();
+    return;
+  }
+
+  const count = document.getElementById('resultsCount');
+  count.textContent = 'Searching…';
+
+  try {
+    const url = `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&scope=documents&limit=20`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`The search API returned HTTP ${res.status} ${res.statusText}.`);
+    const body = await res.json();
+
+    // The score is kept on the record but deliberately not rendered: the API
+    // has already dropped anything below its relevance floor, so a visible
+    // number would add interpretation work without changing any decision.
+    // Useful in devtools when a result's ranking looks wrong.
+    semanticResults = (body.items ?? []).map(it => ({
+      ...normalizeDocument(it),
+      score: it.score ?? null,
+    }));
+    applyFilters();
+  } catch (err) {
+    console.error('GET /search failed:', err);
+    // Fall back to the local substring filter rather than showing nothing:
+    // a degraded search still beats an empty page.
+    semanticResults = null;
+    applyFilters();
+    count.textContent += ' (semantic search unavailable, showing text matches)';
+  }
 }
 
 function clearFilters() {
+  semanticResults = null;
   if (yearSlider) { yearSlider.value = yearSlider.max; yearLabel.textContent = yearSlider.max; }
   document.getElementById('locationFilter').value = '';
   document.getElementById('searchInput').value = '';
@@ -267,8 +431,196 @@ function clearFilters() {
   applyFilters();
 }
 
-// Init count
-applyFilters();
+// ──────────────────────────────────────────────────────────────────────────
+// Data layer — GET /documents
+//
+// All archive data comes from this one fetch. No AWS SDK, no credentials and
+// no direct DynamoDB/S3 access belong in the browser.
+// ──────────────────────────────────────────────────────────────────────────
+
+let documents = [];
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+  { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+));
+
+const asArray = (v) => Array.isArray(v) ? v : (v == null || v === '' ? [] : [v]);
+
+/**
+ * First usable 4-digit year among the arguments, or null.
+ *
+ * Zero is treated as absent: the template record in the table carries
+ * yearStart: 0, which would otherwise read as the year 0 and drag the slider's
+ * lower bound with it.
+ */
+function firstYear(...candidates) {
+  for (const c of candidates) {
+    if (c == null || c === '' || c === 0) continue;
+    const m = /\b(\d{4})\b/.exec(String(c));
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+/**
+ * Normalise one API record into the shape the card renderer uses.
+ *
+ * Two response shapes are accepted on purpose, because the deployed Lambda and
+ * lambda/get-entries.mjs in this repo do not currently agree:
+ *   - shaped   (get-entries.mjs toCard):  title, subject, location, thumbnailUrl
+ *   - raw item (what is deployed today):  dcTitle, dcSubject, dcCoverageSpatial
+ * Whichever is live, the card reads the same.
+ */
+function normalizeDocument(it) {
+  return {
+    documentId:  it.documentId ?? '',
+    title:       it.title       ?? it.dcTitle       ?? '(untitled)',
+    description: it.description ?? it.dcDescription ?? '',
+    creators:    asArray(it.creator ?? it.dcCreator),
+    subjects:    asArray(it.subject ?? it.dcSubject),
+    locations:   asArray(it.location ?? it.dcCoverageSpatial),
+    publisher:   it.publisher ?? it.dcPublisher ?? '',
+    // One numeric year for the slider. yearStart is the intended source but is
+    // absent or 0 on most records today, so a 4-digit year is read out of
+    // dcDate or dateDisplay as a fallback. Undated records keep null and the
+    // slider leaves them alone.
+    year:        firstYear(it.yearStart, it.dcDate, it.dateDisplay, it.date),
+    yearEnd:     Number(it.yearEnd) || null,
+    dateDisplay: it.dateDisplay || it.dcDate || '',
+    // Only the shaped response builds a CDN URL; the raw item has s3ThumbKey,
+    // which the browser cannot resolve without the CloudFront domain.
+    thumbnailUrl: it.thumbnailUrl ?? null,
+    status:      it.status ?? 'PUBLISHED',
+    // Census datasets. dcType drives which tab a record belongs to, and it is
+    // also what GSI2PK keys on, so the tab and the index agree by construction.
+    type:        it.type ?? it.dcType ?? '',
+    rowCount:    Number(it.rowCount) || 0,
+    sheetCount:  Number(it.sheetCount) || 0,
+    // Resolved here rather than in the card, so the allowlist in mediaUrl()
+    // sees the raw key exactly once per record.
+    datasetUrl:  archiveDatasetUrl(it),
+  };
+}
+
+/** Render one normalised document as a .doc card applyFilters() can filter. */
+function renderCard(d) {
+  const year     = d.year ? String(d.year) : '';
+  const location = d.locations[0] ?? '';
+  const author   = d.creators.join(', ');
+  const href     = d.documentId ? `document.html?id=${encodeURIComponent(d.documentId)}` : '#';
+
+  const meta = [d.dateDisplay || year, author, location]
+    .filter(Boolean)
+    .map(v => `<span>${esc(v)}</span>`)
+    .join('');
+
+
+  const tags = d.subjects.map(s => `<span class="tag">${esc(s)}</span>`).join('');
+
+  // No data-* filter attributes: applyFilters() tests the records themselves
+  // and re-renders this list, so the markup carries no filter state.
+  // A document with no thumbnail uploaded yet resolves to a key the CDN answers
+  // 403 for, so the <img> removes itself rather than showing a broken image.
+  // Same contract as the student portraits on about.html.
+  const thumb = d.thumbnailUrl
+    ? `<img class="result-card__thumb" src="${esc(d.thumbnailUrl)}" alt=""
+            loading="lazy" onerror="this.remove()">`
+    : '';
+
+  return `
+    <article class="result-card doc">
+      ${thumb}
+      <h3><a href="${esc(href)}">${esc(d.title)}</a></h3>
+      <div class="result-meta">${meta}</div>
+      <p class="result-snippet">${esc(d.description)}</p>
+      <div class="tag-list">${tags}</div>
+      <div class="result-card__actions">
+        <a href="${esc(href)}" class="btn btn--outline btn--sm">View Document</a>
+        <button class="btn btn--ghost btn--sm" onclick="citeDocument('${esc(d.documentId)}')">Cite</button>
+      </div>
+    </article>`;
+}
+
+/**
+ * Cite one document straight from its result card.
+ *
+ * The modal is filled from the record already in memory, so a glance at the
+ * list gives the citation without opening the document first. dateDisplay is
+ * preferred over the derived year because it is what the record actually says
+ * ("1865/1928" rather than 1865).
+ */
+function citeDocument(documentId) {
+  const d = documents.find(x => x.documentId === documentId);
+  if (!d) return;
+  openCiteModal({
+    title:     d.title,
+    creators:  d.creators,
+    publisher: d.publisher,
+    date:      d.dateDisplay || (d.year != null ? String(d.year) : ''),
+  });
+}
+
+function renderDocuments() {
+  // Facets first: applyFilters() reads the controls buildFacets() creates, and
+  // the slider's default position depends on the range it finds in the data.
+  buildFacets(documents.filter(d => !isDataset(d)));
+  applyFilters();
+  // Both tabs come from the same fetch, so the census panel is built now
+  // rather than on first click: switching tabs then costs nothing and the
+  // year bar is already correct if the page opened at archive.html#census.
+  renderCensus();
+}
+
+function showLoadError(message) {
+  documents = [];
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('noResults').style.display = 'none';
+  document.getElementById('loadErrorDetail').textContent = message;
+  document.getElementById('loadError').style.display = '';
+  document.getElementById('resultsCount').textContent = '— documents';
+}
+
+async function loadDocuments() {
+  const loading = document.getElementById('loadingState');
+  document.getElementById('loadError').style.display = 'none';
+  loading.style.display = '';
+  document.getElementById('resultsCount').textContent = 'Loading…';
+
+  try {
+    // No custom headers: this stays a CORS "simple request", so the browser
+    // never needs to send an OPTIONS preflight.
+    const res = await fetch(`${API_BASE_URL}/documents`);
+    if (!res.ok) throw new Error(`The archive API returned HTTP ${res.status} ${res.statusText}.`);
+    console.log('GET /documents response:', res);
+    const body = await res.json();
+    // Bare array (deployed today) or { items: [...] } (get-entries.mjs).
+    const raw = Array.isArray(body) ? body : (body.items ?? []);
+    if (!Array.isArray(raw)) throw new Error('The archive API returned an unexpected response shape.');
+
+    documents = raw
+      .map(normalizeDocument)
+      // The raw-item response does not filter drafts server-side; don't show them.
+      // .filter(d => d.status === 'PUBLISHED');
+
+    loading.style.display = 'none';
+    renderDocuments();
+  } catch (err) {
+    console.error('GET /documents failed:', err);
+    showLoadError(
+      err instanceof TypeError
+        // fetch() reports a CORS rejection and a dead network identically, so
+        // name both causes instead of guessing wrong.
+        ? `Could not reach the archive API from ${location.origin}. This is `
+          + `usually a CORS problem on the API (the response is missing an `
+          + `Access-Control-Allow-Origin header for this origin), or the `
+          + `network is down. Check the browser console for the exact error.`
+        : err.message
+    );
+  }
+}
+
+loadDocuments();
 </script>
 
 
@@ -317,12 +669,12 @@ applyFilters();
       <button class="cite-modal__close" onclick="closeCiteModal()">✕</button>
     </div>
     <div class="cite-modal__body">
-      <p class="cite-modal__doc-title">[Document Title]</p>
+      <p class="cite-modal__doc-title" id="citeTitle"></p>
 
       <div class="cite-row">
         <span class="cite-row__label">MLA</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-mla">[Author Last], [First]. <em>[Title]</em>. [Publisher], [Year].</div>
+          <div class="cite-row__text" id="cite-mla"></div>
           <button class="cite-copy" onclick="copyCite('cite-mla', this)">Copy</button>
         </div>
       </div>
@@ -330,7 +682,7 @@ applyFilters();
       <div class="cite-row">
         <span class="cite-row__label">APA</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-apa">[Author Last], [Initial]. ([Year]). <em>[Title]</em>. [Publisher].</div>
+          <div class="cite-row__text" id="cite-apa"></div>
           <button class="cite-copy" onclick="copyCite('cite-apa', this)">Copy</button>
         </div>
       </div>
@@ -338,7 +690,7 @@ applyFilters();
       <div class="cite-row">
         <span class="cite-row__label">Chicago</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-chicago">[Author Last], [First]. <em>[Title]</em>. [Location]: [Publisher], [Year].</div>
+          <div class="cite-row__text" id="cite-chicago"></div>
           <button class="cite-copy" onclick="copyCite('cite-chicago', this)">Copy</button>
         </div>
       </div>
@@ -346,7 +698,7 @@ applyFilters();
       <div class="cite-row">
         <span class="cite-row__label">Harvard</span>
         <div class="cite-row__inner">
-          <div class="cite-row__text" id="cite-harvard">[Author Last], [Initial] ([Year]) <em>[Title]</em>. [Location]: [Publisher].</div>
+          <div class="cite-row__text" id="cite-harvard"></div>
           <button class="cite-copy" onclick="copyCite('cite-harvard', this)">Copy</button>
         </div>
       </div>
@@ -355,28 +707,8 @@ applyFilters();
   </div>
 </div>
 
-<script>
-function openCiteModal() {
-  document.getElementById('citeBackdrop').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeCiteModal() {
-  document.getElementById('citeBackdrop').classList.remove('open');
-  document.body.style.overflow = '';
-}
-function closeCiteOnBackdrop(e) {
-  if (e.target === document.getElementById('citeBackdrop')) closeCiteModal();
-}
-function copyCite(id, btn) {
-  navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => {
-    btn.textContent = '✓';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  });
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCiteModal(); });
-</script>
 
 <script>renderShell('Archive');</script>
+<script src="chat.js"></script>
 </body>
 </html>
