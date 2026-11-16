@@ -30,19 +30,13 @@ Serve the repository root over HTTP and open the site in a browser.
 **Option A — Python 3 (no install):**
 
 ```bash
-python3 -m http.server 8000
-```
-
-**Option B — Node:**
-
-```bash
-npx serve -l 8000
+python3 -m http.server 5500 --bind 127.0.0.1
 ```
 
 Then open:
 
 ```
-http://localhost:8000/index.html
+http://127.0.0.1:5500/
 ```
 
 Stop the server with `Ctrl+C`.
@@ -106,8 +100,7 @@ CORS rejection apart from a dead network, so the on-page error message names bot
 causes. Fix it by adding your localhost origin to the API's allowed origins, or by
 serving on a port that is already allowed.
 
-**`Address already in use`.** Something else holds port 8000. Pick another port
-(`python3 -m http.server 8001`) and use that in the URL.
+**`Address already in use`.** Something else holds port 5500. 
 
 **Images are missing but text loads.** The record's `s3Key` resolved to `null`,
 which is `mediaUrl()`'s normal "no picture" answer, or the media host is not in
