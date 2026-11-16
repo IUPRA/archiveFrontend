@@ -530,11 +530,26 @@ function renderAccess(d) {
     ? `<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(d.source || d.sourceUrl)}</a>`
     : esc(d.source || 'the holding institution');
 
+  // A full-text search result arrives as ?page=N, so the viewer opens on the
+  // page that actually matched rather than on the title page of a 400-page
+  // scan. Native PDF viewers honour #page=; one that does not simply opens at
+  // the start, so this degrades to the previous behaviour rather than breaking.
+  //
+  // Clamped to the record's own pageCount and forced to a positive integer:
+  // the value comes from the address bar, and #page= is concatenated into an
+  // attribute, so it is never trusted as given.
+  const wanted = parseInt(new URLSearchParams(location.search).get('page') || '', 10);
+  const maxPage = Number(d.pageCount) || 0;
+  const page = Number.isInteger(wanted) && wanted > 0 && (!maxPage || wanted <= maxPage)
+    ? wanted
+    : null;
+  const openAt = page ? `#page=${page}&view=FitH` : '#view=FitH';
+
   const blocks = {
     // #view=FitH opens at page width. Scans run to tens of megabytes; the
     // distribution answers range requests, so the built-in viewer streams the
     // file a page at a time instead of waiting for the whole download.
-    A: `<iframe class="pdf-embed" src="${esc(d.pdfUrl)}#view=FitH"
+    A: `<iframe class="pdf-embed" src="${esc(d.pdfUrl)}${openAt}"
                 title="${esc(d.title)}" loading="lazy"></iframe>`,
     B: `<div class="access-notice">
           <div>The full text is not available for display here. It can be consulted at

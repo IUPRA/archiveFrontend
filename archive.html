@@ -407,7 +407,25 @@ async function runSemanticSearch() {
     // has already dropped anything below its relevance floor, so a visible
     // number would add interpretation work without changing any decision.
     // Useful in devtools when a result's ranking looks wrong.
-    semanticResults = (body.items ?? []).map(it => ({
+    const hits = body.items ?? [];
+
+    // Nothing above the relevance floor is NOT the same as nothing to show.
+    // The browser already holds every document, so fall back to the local
+    // substring filter rather than rendering an empty page -- otherwise a
+    // visitor typing a title that is sitting in the list in front of them
+    // gets "0 matches". The error path below has always done this; an empty
+    // result set needs it just as much, and hits it far more often.
+    if (!hits.length) {
+      semanticResults = null;
+      applyFilters();
+      const n = document.querySelectorAll('#results .result-card').length;
+      count.textContent = n
+        ? `${n} text match${n !== 1 ? 'es' : ''} (no semantic matches)`
+        : 'No matches';
+      return;
+    }
+
+    semanticResults = hits.map(it => ({
       ...normalizeDocument(it),
       score: it.score ?? null,
     }));
@@ -499,6 +517,17 @@ function normalizeDocument(it) {
     // Resolved here rather than in the card, so the allowlist in mediaUrl()
     // sees the raw key exactly once per record.
     datasetUrl:  archiveDatasetUrl(it),
+    // Full-text provenance. Present only on a /search result whose best match
+    // was a page of OCR'd text, absent when browsing or on a metadata-only
+    // match, which is why every use below is guarded.
+    //   page        the best-matching page number
+    //   alsoOnPages up to three further pages that also matched
+    //   matchSource 'page' | 'metadata' | 'both'
+    // No snippet: the API deliberately returns a page number and never the
+    // text, so nothing here can render a passage even by accident.
+    page:        Number(it.page) || null,
+    alsoOnPages: asArray(it.alsoOnPages).map(Number).filter(Boolean),
+    matchSource: it.matchSource ?? null,
   };
 }
 
@@ -507,9 +536,23 @@ function renderCard(d) {
   const year     = d.year ? String(d.year) : '';
   const location = d.locations[0] ?? '';
   const author   = d.creators.join(', ');
-  const href     = d.documentId ? `document.html?id=${encodeURIComponent(d.documentId)}` : '#';
 
-  const meta = [d.dateDisplay || year, author, location]
+  // A page-level match deep-links to that page, so clicking the result opens
+  // the passage rather than page one of a 400-page scan. document.html turns
+  // ?page= into the PDF viewer's #page= fragment.
+  const href = d.documentId
+    ? `document.html?id=${encodeURIComponent(d.documentId)}`
+      + (d.page ? `&page=${encodeURIComponent(d.page)}` : '')
+    : '#';
+
+  // Page provenance sits in the meta row with the date and author rather than
+  // in its own element: it is the same kind of fact, and the row already
+  // drops whatever is missing.
+  const pageNote = d.page
+    ? 'p. ' + d.page + (d.alsoOnPages.length ? ', also ' + d.alsoOnPages.join(', ') : '')
+    : '';
+
+  const meta = [d.dateDisplay || year, author, location, pageNote]
     .filter(Boolean)
     .map(v => `<span>${esc(v)}</span>`)
     .join('');
@@ -550,7 +593,13 @@ function renderCard(d) {
  * ("1865/1928" rather than 1865).
  */
 function citeDocument(documentId) {
-  const d = documents.find(x => x.documentId === documentId);
+  // Look in the semantic results first when a search is active. Searching
+  // against `documents` alone silently cited nothing for any result that came
+  // back from /search but was not in the browse list -- which is most page
+  // matches, since full-text search reaches documents the browse list happens
+  // not to hold in memory.
+  const d = (semanticResults ?? []).find(x => x.documentId === documentId)
+         || documents.find(x => x.documentId === documentId);
   if (!d) return;
   openCiteModal({
     title:     d.title,
@@ -600,8 +649,15 @@ async function loadDocuments() {
 
     documents = raw
       .map(normalizeDocument)
-      // The raw-item response does not filter drafts server-side; don't show them.
-      // .filter(d => d.status === 'PUBLISHED');
+      // The raw-item response does not filter drafts server-side, so this does.
+      //
+      // Enabled now that search is gated the same way: /search filters on
+      // status at the vector index, so leaving this commented out meant browse
+      // showed documents search could never return. Two records are DRAFT
+      // today (irp-books-000010 and -000024, both held back by the full-text
+      // verification gate) and they are the two a visitor should not be
+      // offered, because -000010's PDF is a different book entirely.
+      .filter(d => d.status === 'PUBLISHED');
 
     loading.style.display = 'none';
     renderDocuments();
